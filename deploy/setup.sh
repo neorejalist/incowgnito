@@ -33,8 +33,8 @@ echo ""
 # Collect input
 # ---------------------------------------------------------------------------
 
-read -rp "App domain (e.g. incowgnito.eu): " APP_DOMAIN
-read -rp "Alias domain (e.g. alias.incowgnito.eu or same as app): " ALIAS_DOMAIN
+read -rp "App domain (e.g. incowgnito.eu): " APP_DOMAIN </dev/tty
+read -rp "Alias domain (e.g. alias.incowgnito.eu or same as app): " ALIAS_DOMAIN </dev/tty
 
 echo ""
 echo "You'll need these from the Mailcow admin panel:"
@@ -43,9 +43,9 @@ echo "  - Admin > OAuth2 Apps > Add Application"
 echo "    Redirect URI: https://${APP_DOMAIN}/auth/callback"
 echo ""
 
-read -rp "Mailcow API key: " MAILCOW_API_KEY
-read -rp "OAuth2 Client ID: " OAUTH_CLIENT_ID
-read -rp "OAuth2 Client Secret: " OAUTH_CLIENT_SECRET
+read -rp "Mailcow API key: " MAILCOW_API_KEY </dev/tty
+read -rp "OAuth2 Client ID: " OAUTH_CLIENT_ID </dev/tty
+read -rp "OAuth2 Client Secret: " OAUTH_CLIENT_SECRET </dev/tty
 
 # ---------------------------------------------------------------------------
 # Generate secrets
