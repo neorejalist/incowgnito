@@ -1,3 +1,5 @@
+WIP - currently broken!
+
 # Incowgnito
 
 Self-hosted email alias service compatible with the [addy.io](https://addy.io) API. Runs as a sidecar to your existing [mailcow-dockerized](https://github.com/mailcow/mailcow-dockerized) installation.
