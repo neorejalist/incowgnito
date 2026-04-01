@@ -1,0 +1,25 @@
+# Place this file at: /opt/mailcow-dockerized/docker-compose.override.yml
+#
+# Extends mailcow's compose project. The incowgnito container joins the
+# existing mailcow-network and is proxied by nginx-mailcow.
+
+services:
+
+  incowgnito:
+    image: ghcr.io/neorejalist/incowgnito:latest
+    container_name: incowgnito
+    restart: unless-stopped
+    env_file:
+      - mailcow.conf
+      - incowgnito.env
+    networks:
+      - mailcow-network
+    depends_on:
+      - mysql-mailcow
+      - nginx-mailcow
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/session-info"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

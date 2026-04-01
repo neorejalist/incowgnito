@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incowgnito - Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid #1e293b;
+    }
+    .header h1 { font-size: 1.25rem; }
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .user-email { color: #94a3b8; font-size: 0.875rem; }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+    .btn-ghost:hover { background: #1e293b; }
+    .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.8rem; }
+    main { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    .section { margin-bottom: 2.5rem; }
+    .section h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+    .card {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .alias-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alias-address {
+      font-family: monospace;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    .alias-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-active { background: #065f46; color: #6ee7b7; }
+    .badge-inactive { background: #7f1d1d; color: #fca5a5; }
+    .form-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    input[type="text"] {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      flex: 1;
+    }
+    input[type="text"]::placeholder { color: #64748b; }
+    input[type="text"]:focus { outline: none; border-color: #3b82f6; }
+    .key-display {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      word-break: break-all;
+      margin-top: 0.5rem;
+    }
+    .key-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .key-meta { color: #94a3b8; font-size: 0.8rem; }
+    .empty { color: #64748b; font-style: italic; padding: 1rem 0; }
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.2s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Incowgnito</h1>
+    <div class="header-right">
+      <span class="user-email" id="userEmail"></span>
+      <a href="/auth/logout" class="btn btn-ghost btn-sm">Logout</a>
+    </div>
+  </div>
+
+  <main>
+    <div class="section">
+      <h2>Aliases</h2>
+      <div class="form-row">
+        <input type="text" id="aliasInput" placeholder="Custom local part (leave blank for random)">
+        <button class="btn btn-primary" id="createAliasBtn">Create Alias</button>
+      </div>
+      <div id="aliasList"></div>
+    </div>
+
+    <div class="section">
+      <h2>API Keys</h2>
+      <p style="color:#94a3b8;font-size:0.85rem;margin-bottom:0.75rem;">Use these keys with Bitwarden's addy.io integration.</p>
+      <div class="form-row">
+        <input type="text" id="keyNameInput" placeholder="Key name (e.g. Bitwarden)">
+        <button class="btn btn-primary" id="createKeyBtn">Create Key</button>
+      </div>
+      <div id="newKeyDisplay" style="display:none">
+        <div class="card">
+          <strong>New API key created — copy it now, it won't be shown again:</strong>
+          <div class="key-display" id="newKeyValue"></div>
+        </div>
+      </div>
+      <div id="keyList"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const toast = (msg) => {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2500);
+    };
+
+    const api = async (method, path, body) => {
+      const opts = { method, headers: {} };
+      if (body) {
+        opts.headers["Content-Type"] = "application/json";
+        opts.body = JSON.stringify(body);
+      }
+      const res = await fetch(path, opts);
+      if (res.status === 204) return null;
+      return res.json();
+    };
+
+    const loadSession = async () => {
+      const data = await api("GET", "/session-info");
+      if (!data.loggedIn) return (window.location.href = "/");
+      $("userEmail").textContent = data.email;
+    };
+
+    const renderAliases = async () => {
+      const { data } = await api("GET", "/auth/aliases-preview");
+      const el = $("aliasList");
+
+      if (!data.length) {
+        el.innerHTML = '<p class="empty">No aliases yet.</p>';
+        return;
+      }
+
+      el.innerHTML = data
+        .map(
+          (a) => `
+        <div class="card">
+          <div class="alias-row">
+            <span class="alias-address">${a.email}</span>
+            <div class="alias-actions">
+              <span class="badge ${a.active ? "badge-active" : "badge-inactive"}">${a.active ? "Active" : "Inactive"}</span>
+              <button class="btn btn-ghost btn-sm" onclick="toggleAlias(${a.id}, ${!a.active})">${a.active ? "Disable" : "Enable"}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteAlias(${a.id})">Delete</button>
+            </div>
+          </div>
+        </div>`
+        )
+        .join("");
+    };
+
+    const renderKeys = async () => {
+      const { data } = await api("GET", "/auth/api-keys");
+      const el = $("keyList");
+
+      if (!data.length) {
+        el.innerHTML = '<p class="empty">No API keys yet.</p>';
+        return;
+      }
+
+      el.innerHTML = data
+        .map(
+          (k) => `
+        <div class="card">
+          <div class="key-row">
+            <div>
+              <strong>${k.name}</strong>
+              <span class="key-meta"> &mdash; created ${new Date(k.created_at).toLocaleDateString()}</span>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="deleteKey('${k.id}')">Delete</button>
+          </div>
+        </div>`
+        )
+        .join("");
+    };
+
+    $("createAliasBtn").onclick = async () => {
+      const localPart = $("aliasInput").value.trim();
+      const body = localPart ? { local_part: localPart } : {};
+      try {
+        await api("POST", "/auth/aliases-create", body);
+        $("aliasInput").value = "";
+        toast("Alias created");
+        renderAliases();
+      } catch {
+        toast("Failed to create alias");
+      }
+    };
+
+    $("createKeyBtn").onclick = async () => {
+      const name = $("keyNameInput").value.trim() || "Default";
+      const data = await api("POST", "/auth/api-keys", { name });
+      $("keyNameInput").value = "";
+      $("newKeyValue").textContent = data.key;
+      $("newKeyDisplay").style.display = "block";
+      toast("API key created");
+      renderKeys();
+    };
+
+    window.toggleAlias = async (id, active) => {
+      await api("PATCH", `/auth/aliases-toggle/${id}`, { active });
+      toast(active ? "Alias enabled" : "Alias disabled");
+      renderAliases();
+    };
+
+    window.deleteAlias = async (id) => {
+      if (!confirm("Delete this alias? Emails sent to it will stop working.")) return;
+      await api("DELETE", `/auth/aliases-delete/${id}`);
+      toast("Alias deleted");
+      renderAliases();
+    };
+
+    window.deleteKey = async (id) => {
+      if (!confirm("Delete this API key?")) return;
+      await api("DELETE", `/auth/api-keys/${id}`);
+      toast("API key deleted");
+      renderKeys();
+    };
+
+    loadSession();
+    renderAliases();
+    renderKeys();
+  </script>
+</body>
+</html>

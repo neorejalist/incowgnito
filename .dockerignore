@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.git/
+.DS_Store
+*.md
+!README.md
+deploy/
+.github/
+.env
+*.env
