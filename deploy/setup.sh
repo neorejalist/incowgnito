@@ -225,7 +225,7 @@ fi
 
 echo "[5/6] Setting up database..."
 
-docker compose exec -T mysql-mailcow mysql -u"${DBUSER}" -p"${DBPASS}" "${DBNAME}" <<SQL
+docker compose exec -T mysql-mailcow mysql -uroot -p"${DBROOT}" "${DBNAME}" <<SQL
 
 CREATE USER IF NOT EXISTS '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASSWORD}';
 
