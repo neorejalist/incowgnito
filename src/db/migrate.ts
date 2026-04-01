@@ -1,26 +1,16 @@
 import { pool } from "./connection";
 
 export const migrate = async () => {
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS incowgnito_users (
-      id          VARCHAR(36) PRIMARY KEY,
-      email       VARCHAR(255) UNIQUE NOT NULL,
-      username    VARCHAR(255) NOT NULL,
-      created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  const [rows] = await pool.execute(
+    "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'incowgnito_users'"
+  );
 
-  await pool.execute(`
-    CREATE TABLE IF NOT EXISTS incowgnito_api_keys (
-      id           VARCHAR(36) PRIMARY KEY,
-      user_id      VARCHAR(36) NOT NULL,
-      key_hash     VARCHAR(128) UNIQUE NOT NULL,
-      name         VARCHAR(255) NOT NULL DEFAULT 'Default',
-      created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      last_used_at DATETIME,
-      FOREIGN KEY (user_id) REFERENCES incowgnito_users(id) ON DELETE CASCADE
-    )
-  `);
+  if ((rows as any)[0].count === 0) {
+    throw new Error(
+      "incowgnito_users table not found. Run the setup script first: " +
+      "curl -sL https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh | bash"
+    );
+  }
 
-  console.log("Database migration complete");
+  console.log("Database tables verified");
 };

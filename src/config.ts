@@ -15,8 +15,8 @@ export const config = {
     host: process.env.DBHOST ?? "mysql-mailcow",
     port: Number(process.env.DBPORT ?? 3306),
     name: process.env.DBNAME ?? "mailcow",
-    user: required("DBUSER"),
-    password: required("DBPASS"),
+    user: required("INCOWGNITO_DB_USER"),
+    password: required("INCOWGNITO_DB_PASSWORD"),
   },
   relay: {
     domain: required("RELAY_DOMAIN"),

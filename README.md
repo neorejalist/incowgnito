@@ -59,50 +59,26 @@ docker compose run --rm certdumper
 # Option B: If you already have a wildcard cert (*.example.com), skip this step.
 ```
 
-### 5. Deploy
+### 5. Run the setup script
+
+The interactive setup script handles everything: configuration, database user, nginx, SSL, and container startup.
 
 ```bash
 cd /opt/mailcow-dockerized
-
-# Copy the compose override (extends mailcow's docker-compose.yml)
-cp /path/to/incowgnito/deploy/docker-compose.override.yml .
-
-# Copy the nginx reverse proxy config
-cp /path/to/incowgnito/deploy/nginx-relay.conf data/conf/nginx/relay.conf
-# Edit data/conf/nginx/relay.conf and replace the example domains with yours
-
-# Create the environment file
-cp /path/to/incowgnito/deploy/incowgnito.env.example incowgnito.env
+curl -sL https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh | bash
 ```
 
-Edit `incowgnito.env` with your values:
+The script will ask for your app domain, alias domain, API key, and OAuth credentials. It then:
 
-```env
-MAILCOW_API_KEY=your-mailcow-admin-api-key
-MAILCOW_OAUTH_CLIENT_ID=your-oauth-client-id
-MAILCOW_OAUTH_CLIENT_SECRET=your-oauth-client-secret
-RELAY_DOMAIN=alias.example.com
-APP_URL=https://relay.example.com
-SESSION_SECRET=          # generate with: openssl rand -hex 32
-```
+1. Generates a dedicated database user and session secret
+2. Writes `incowgnito.conf`
+3. Updates (or creates) `docker-compose.override.yml` — backs up existing file first, validates after merging, and rolls back if parsing fails
+4. Writes the nginx reverse proxy config
+5. Adds your domains to `ADDITIONAL_SAN` in `mailcow.conf` and runs certdumper
+6. Creates the database user and tables with minimal privileges
+7. Pulls and starts the container
 
-Database credentials (`DBUSER`, `DBPASS`, `DBNAME`) and `MAILCOW_HOSTNAME` are automatically inherited from `mailcow.conf` via the compose override — no need to duplicate them.
-
-### 6. Start
-
-```bash
-cd /opt/mailcow-dockerized
-
-docker compose pull incowgnito
-docker compose up -d incowgnito
-
-# Reload nginx to pick up the new proxy config
-docker compose exec nginx-mailcow nginx -s reload
-```
-
-Visit `https://relay.example.com`, log in with your mailcow account, and create an API key from the dashboard.
-
-### 7. Connect Bitwarden (or any addy.io-compatible client)
+### 6. Connect Bitwarden (or any addy.io-compatible client)
 
 In your password manager, configure the addy.io integration:
 
@@ -154,10 +130,10 @@ These are read automatically from `mailcow.conf` via the docker-compose `env_fil
 |---|---|
 | `MAILCOW_HOSTNAME` | Mailcow hostname (used for API calls and OAuth) |
 | `DBNAME` | MariaDB database name |
-| `DBUSER` | MariaDB user |
-| `DBPASS` | MariaDB password |
+| `DBUSER` | MariaDB admin user (used by setup script only) |
+| `DBPASS` | MariaDB admin password (used by setup script only) |
 
-### App-specific (incowgnito.env)
+### App-specific (incowgnito.conf)
 
 | Variable | Required | Description |
 |---|---|---|
@@ -166,7 +142,9 @@ These are read automatically from `mailcow.conf` via the docker-compose `env_fil
 | `MAILCOW_OAUTH_CLIENT_SECRET` | yes | OAuth2 client secret from step 2 |
 | `RELAY_DOMAIN` | yes | Domain for generated aliases |
 | `APP_URL` | yes | Public URL of this service |
-| `SESSION_SECRET` | yes | Random secret (`openssl rand -hex 32`) |
+| `INCOWGNITO_DB_USER` | yes | Dedicated DB user (created by setup script) |
+| `INCOWGNITO_DB_PASSWORD` | yes | DB password (`openssl rand -hex 16`) |
+| `SESSION_SECRET` | yes | Session secret (`openssl rand -hex 32`) |
 | `PORT` | no | Internal port (default: `3000`) |
 
 ## Development
@@ -193,12 +171,12 @@ Then set `DBHOST=localhost` in your environment.
 
 ## How It Stores Data
 
-Incowgnito creates two tables in the existing mailcow MariaDB database:
+Incowgnito uses two tables in the existing mailcow MariaDB database, created by the setup script:
 
 - `incowgnito_users` — maps OAuth-authenticated users (email, username)
 - `incowgnito_api_keys` — hashed API keys linked to users
 
-Tables are created automatically on first startup (`CREATE TABLE IF NOT EXISTS`). Aliases are **not** duplicated — they're read directly from mailcow's own `alias` table, filtered by your relay domain.
+The app connects with a dedicated DB user that has **read-only** access to mailcow's `alias` table and **read/write** access to its own tables. Aliases are **not** duplicated — they're read directly from mailcow's own `alias` table, filtered by your relay domain.
 
 ## Project Structure
 
@@ -231,7 +209,8 @@ public/
 deploy/
 ├── docker-compose.override.yml
 ├── nginx-relay.conf
-└── incowgnito.env.example
+├── incowgnito.conf.example
+└── setup.sh
 ```
 
 ## Support

@@ -1,0 +1,21 @@
+# Incowgnito configuration
+# Place as: /opt/mailcow-dockerized/incowgnito.conf
+#
+# MAILCOW_HOSTNAME, DBNAME, DBUSER, and DBPASS are inherited
+# from mailcow.conf via docker-compose env_file.
+
+# Mailcow integration
+MAILCOW_API_KEY=your-mailcow-admin-api-key
+MAILCOW_OAUTH_CLIENT_ID=your-oauth-client-id
+MAILCOW_OAUTH_CLIENT_SECRET=your-oauth-client-secret
+
+# Domains
+RELAY_DOMAIN=alias.example.com
+APP_URL=https://relay.example.com
+
+# Database (dedicated user — created by setup-db.sh)
+INCOWGNITO_DB_USER=incowgnito
+INCOWGNITO_DB_PASSWORD=replace-with-openssl-rand-hex-16
+
+# Session
+SESSION_SECRET=replace-with-openssl-rand-hex-32
