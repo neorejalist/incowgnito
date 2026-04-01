@@ -153,20 +153,12 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name ${APP_DOMAIN};
 
     ssl_certificate     /etc/ssl/mail/cert.pem;
     ssl_certificate_key /etc/ssl/mail/key.pem;
-
-    ssl_protocols             TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache         shared:SSL:10m;
-    ssl_session_timeout       10m;
-
-    add_header Strict-Transport-Security "max-age=63072000" always;
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
 
     location / {
         proxy_pass         http://incowgnito:3000;
