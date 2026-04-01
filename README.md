@@ -234,6 +234,12 @@ deploy/
 └── incowgnito.env.example
 ```
 
+## Support
+
+If you find Incowgnito useful, consider supporting development:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-yellow?style=flat-square)](https://buy.stripe.com/3cI00ia2Peir2y65hx9AA07)
+
 ## License
 
 MIT
