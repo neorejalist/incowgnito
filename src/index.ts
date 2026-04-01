@@ -50,14 +50,23 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const start = async () => {
+  console.log("[startup] Loading config...");
+  console.log(`[startup] Mailcow host: ${config.mailcow.host}`);
+  console.log(`[startup] DB host: ${config.db.host}:${config.db.port}/${config.db.name}`);
+  console.log(`[startup] DB user: ${config.db.user}`);
+  console.log(`[startup] Relay domain: ${config.relay.domain}`);
+  console.log(`[startup] App URL: ${config.app.url}`);
+
+  console.log("[startup] Connecting to database...");
   await migrate();
+
+  console.log("[startup] Starting HTTP server...");
   app.listen(config.app.port, () => {
-    console.log(`Incowgnito running on port ${config.app.port}`);
-    console.log(`Relay domain: ${config.relay.domain}`);
+    console.log(`[startup] Incowgnito running on port ${config.app.port}`);
   });
 };
 
 start().catch((err) => {
-  console.error("Failed to start:", err);
+  console.error("[startup] Failed to start:", err);
   process.exit(1);
 });
