@@ -11,14 +11,6 @@ import {
   hashApiKey,
 } from "../utils/crypto";
 
-declare module "express-session" {
-  interface SessionData {
-    userId?: string;
-    userEmail?: string;
-    oauthState?: string;
-  }
-}
-
 const router = Router();
 
 const REDIRECT_URI = `${config.app.url}/auth/callback`;
@@ -71,7 +63,10 @@ router.get("/callback", async (req: Request, res: Response) => {
 });
 
 router.get("/logout", (req: Request, res: Response) => {
-  req.session.destroy(() => res.redirect("/"));
+  req.session.destroy((err) => {
+    if (err) console.error("Session destroy failed:", err);
+    res.redirect("/");
+  });
 });
 
 // --- API key management (session-authenticated) ---
