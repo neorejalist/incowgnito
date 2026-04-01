@@ -65,7 +65,7 @@ The interactive setup script handles everything: configuration, database user, n
 
 ```bash
 cd /opt/mailcow-dockerized
-curl -sL https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh | bash
+curl -sLO https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh && bash setup.sh
 ```
 
 The script will ask for your app domain, alias domain, API key, and OAuth credentials. It then:

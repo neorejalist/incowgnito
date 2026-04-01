@@ -5,7 +5,7 @@ set -euo pipefail
 # Run from /opt/mailcow-dockerized:
 #
 #   cd /opt/mailcow-dockerized
-#   curl -sL https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh | bash
+#   curl -sLO https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh && bash setup.sh
 
 REPO_BASE="https://raw.githubusercontent.com/neorejalist/incowgnito/main"
 

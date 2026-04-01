@@ -8,7 +8,7 @@ export const migrate = async () => {
   if ((rows as any)[0].count === 0) {
     throw new Error(
       "incowgnito_users table not found. Run the setup script first: " +
-      "curl -sL https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh | bash"
+      "curl -sLO https://raw.githubusercontent.com/neorejalist/incowgnito/main/deploy/setup.sh && bash setup.sh"
     );
   }
 
