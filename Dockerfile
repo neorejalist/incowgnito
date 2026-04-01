@@ -2,7 +2,7 @@ FROM oven/bun:1-alpine AS base
 WORKDIR /app
 
 FROM base AS install
-COPY package.json bun.lockb* ./
+COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile 2>/dev/null || bun install
 
 FROM base AS release
@@ -17,4 +17,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
   CMD wget -qO- http://localhost:3000/session-info || exit 1
 
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "src/index.ts"]
