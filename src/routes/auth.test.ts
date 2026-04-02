@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Request, Response } from "express";
 
 vi.mock("../services/mailcow");
+vi.mock("../services/aliases");
 vi.mock("../db/users");
 vi.mock("../db/api-keys");
 vi.mock("../utils/crypto");
@@ -27,11 +28,13 @@ vi.mock("../config", () => ({
 
 import router from "./auth";
 import * as mailcow from "../services/mailcow";
+import * as aliasSvc from "../services/aliases";
 import * as users from "../db/users";
 import * as apiKeys from "../db/api-keys";
 import { generateState, generateId, generateApiKey, hashApiKey } from "../utils/crypto";
 
 const mockMailcow = vi.mocked(mailcow);
+const mockAliasSvc = vi.mocked(aliasSvc);
 const mockUsers = vi.mocked(users);
 const mockApiKeys = vi.mocked(apiKeys);
 const mockGenerateState = vi.mocked(generateState);
@@ -53,6 +56,13 @@ function createSession(data: Partial<SessionData> = {}): SessionData {
   };
 }
 
+interface DispatchResult {
+  status: number;
+  body: unknown;
+  redirectUrl?: string;
+  headers: Record<string, string>;
+}
+
 async function dispatch(
   method: string,
   path: string,
@@ -61,7 +71,7 @@ async function dispatch(
     body?: Record<string, unknown>;
     session?: SessionData;
   } = {}
-): Promise<{ status: number; body: unknown; redirectUrl?: string }> {
+): Promise<DispatchResult> {
   return new Promise((resolve) => {
     const session = options.session ?? createSession();
     const req = {
@@ -77,9 +87,10 @@ async function dispatch(
       get: () => undefined,
     } as unknown as Request;
 
-    const result: { status: number; body: unknown; redirectUrl?: string } = {
+    const result: DispatchResult = {
       status: 200,
       body: null,
+      headers: {},
     };
     const res = {
       status(code: number) {
@@ -99,11 +110,26 @@ async function dispatch(
         result.redirectUrl = url;
         resolve(result);
       },
+      set(key: string, value: string) {
+        result.headers[key.toLowerCase()] = value;
+        return this;
+      },
+      type(_t: string) {
+        return this;
+      },
     } as unknown as Response;
 
     router.handle(req, res, () => resolve(result));
   });
 }
+
+const MOCK_ALIASES = [
+  { id: 1, address: "a@relay.test", goto: "u@test", active: 1, created: "2025-01-01", modified: "2025-01-01" },
+];
+
+const MOCK_KEYS = [
+  { id: "key-1", user_id: "user-1", name: "My Key", created_at: "2025-01-01", last_used_at: null },
+];
 
 describe("GET /login", () => {
   it("redirects to mailcow OAuth authorize URL with state", async () => {
@@ -221,21 +247,23 @@ describe("GET /logout", () => {
 });
 
 describe("POST /api-keys", () => {
-  it("creates and returns a new API key", async () => {
+  it("creates a key and returns HTML with new key display", async () => {
     mockGenerateApiKey.mockReturnValue("raw-api-key");
     mockHashApiKey.mockReturnValue("hashed-key");
     mockGenerateId.mockReturnValue("key-id");
     mockApiKeys.createApiKey.mockResolvedValue();
+    mockApiKeys.listApiKeys.mockResolvedValue(MOCK_KEYS);
 
     const session = createSession({ userId: "user-1" });
-    const { status, body } = await dispatch("POST", "/api-keys", {
+    const { status, body, headers } = await dispatch("POST", "/api-keys", {
       body: { name: "My Key" },
       session,
     });
 
     expect(status).toBe(200);
-    expect((body as { key: string }).key).toBe("raw-api-key");
-    expect((body as { name: string }).name).toBe("My Key");
+    expect(body).toContain("raw-api-key");
+    expect(body).toContain("copy it now");
+    expect(headers["hx-trigger"]).toContain("showToast");
     expect(mockApiKeys.createApiKey).toHaveBeenCalledWith(
       "key-id",
       "user-1",
@@ -249,6 +277,7 @@ describe("POST /api-keys", () => {
     mockHashApiKey.mockReturnValue("hashed-key");
     mockGenerateId.mockReturnValue("key-id");
     mockApiKeys.createApiKey.mockResolvedValue();
+    mockApiKeys.listApiKeys.mockResolvedValue([]);
 
     const session = createSession({ userId: "user-1" });
     await dispatch("POST", "/api-keys", { body: {}, session });
@@ -270,21 +299,14 @@ describe("POST /api-keys", () => {
 });
 
 describe("GET /api-keys", () => {
-  it("lists API keys for the logged-in user", async () => {
-    mockApiKeys.listApiKeys.mockResolvedValue([
-      {
-        id: "key-1",
-        user_id: "user-1",
-        name: "My Key",
-        created_at: "2025-01-01",
-        last_used_at: null,
-      },
-    ]);
+  it("returns HTML list of API keys", async () => {
+    mockApiKeys.listApiKeys.mockResolvedValue(MOCK_KEYS);
 
     const session = createSession({ userId: "user-1" });
     const { body } = await dispatch("GET", "/api-keys", { session });
 
-    expect((body as { data: unknown[] }).data).toHaveLength(1);
+    expect(body).toContain("My Key");
+    expect(body).toContain("hx-delete");
     expect(mockApiKeys.listApiKeys).toHaveBeenCalledWith("user-1");
   });
 
@@ -295,13 +317,15 @@ describe("GET /api-keys", () => {
 });
 
 describe("DELETE /api-keys/:id", () => {
-  it("deletes an API key and returns success", async () => {
+  it("deletes an API key and returns HTML with toast", async () => {
     mockApiKeys.deleteApiKey.mockResolvedValue(1);
+    mockApiKeys.listApiKeys.mockResolvedValue([]);
 
     const session = createSession({ userId: "user-1" });
-    const { body } = await dispatch("DELETE", "/api-keys/key-1", { session });
+    const { body, headers } = await dispatch("DELETE", "/api-keys/key-1", { session });
 
-    expect((body as { message: string }).message).toBe("Deleted");
+    expect(body).toContain("No API keys yet");
+    expect(headers["hx-trigger"]).toContain("showToast");
     expect(mockApiKeys.deleteApiKey).toHaveBeenCalledWith("key-1", "user-1");
   });
 
@@ -320,5 +344,101 @@ describe("DELETE /api-keys/:id", () => {
   it("returns 401 when not logged in", async () => {
     const { status } = await dispatch("DELETE", "/api-keys/key-1");
     expect(status).toBe(401);
+  });
+});
+
+describe("GET /aliases-preview", () => {
+  it("returns HTML list of aliases", async () => {
+    mockAliasSvc.listForUser.mockResolvedValue(MOCK_ALIASES);
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { body } = await dispatch("GET", "/aliases-preview", { session });
+
+    expect(body).toContain("a@relay.test");
+    expect(body).toContain("hx-patch");
+    expect(body).toContain("hx-delete");
+  });
+
+  it("returns 401 when not logged in", async () => {
+    const { status } = await dispatch("GET", "/aliases-preview");
+    expect(status).toBe(401);
+  });
+});
+
+describe("POST /aliases-create", () => {
+  it("creates alias and returns HTML alias list with toast", async () => {
+    mockMailcow.createAlias.mockResolvedValue({ id: 1 });
+    mockAliasSvc.listForUser.mockResolvedValue(MOCK_ALIASES);
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { body, headers } = await dispatch("POST", "/aliases-create", {
+      body: { local_part: "custom" },
+      session,
+    });
+
+    expect(body).toContain("a@relay.test");
+    expect(headers["hx-trigger"]).toContain("showToast");
+    expect(mockMailcow.createAlias).toHaveBeenCalledWith("custom@relay.test", "u@test");
+  });
+
+  it("returns 502 when alias creation fails", async () => {
+    mockMailcow.createAlias.mockRejectedValue(new Error("network"));
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { status } = await dispatch("POST", "/aliases-create", {
+      body: {},
+      session,
+    });
+
+    expect(status).toBe(502);
+  });
+});
+
+describe("PATCH /aliases-toggle/:id", () => {
+  it("toggles alias active state and returns HTML with toast", async () => {
+    mockAliasSvc.getById.mockResolvedValue(MOCK_ALIASES[0]);
+    mockMailcow.setAliasActive.mockResolvedValue();
+    mockAliasSvc.listForUser.mockResolvedValue(MOCK_ALIASES);
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { body, headers } = await dispatch("PATCH", "/aliases-toggle/1", { session });
+
+    expect(body).toContain("a@relay.test");
+    expect(headers["hx-trigger"]).toContain("showToast");
+    // alias.active is 1, so toggle should call setAliasActive with false
+    expect(mockMailcow.setAliasActive).toHaveBeenCalledWith(1, false);
+  });
+
+  it("returns 404 when alias not found", async () => {
+    mockAliasSvc.getById.mockResolvedValue(null);
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { status } = await dispatch("PATCH", "/aliases-toggle/999", { session });
+
+    expect(status).toBe(404);
+  });
+});
+
+describe("DELETE /aliases-delete/:id", () => {
+  it("deletes alias and returns HTML with toast", async () => {
+    mockAliasSvc.getById.mockResolvedValue(MOCK_ALIASES[0]);
+    mockMailcow.deleteAlias.mockResolvedValue();
+    mockAliasSvc.listForUser.mockResolvedValue([]);
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { body, headers } = await dispatch("DELETE", "/aliases-delete/1", { session });
+
+    expect(body).toContain("No aliases yet");
+    expect(headers["hx-trigger"]).toContain("showToast");
+    expect(mockMailcow.deleteAlias).toHaveBeenCalledWith(1);
+  });
+
+  it("returns 404 when alias not found", async () => {
+    mockAliasSvc.getById.mockResolvedValue(null);
+
+    const session = createSession({ userId: "user-1", userEmail: "u@test" });
+    const { status } = await dispatch("DELETE", "/aliases-delete/999", { session });
+
+    expect(status).toBe(404);
   });
 });

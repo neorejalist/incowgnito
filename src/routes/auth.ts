@@ -8,8 +8,13 @@ import {
   generateState,
   generateId,
   generateApiKey,
+  generateLocalPart,
   hashApiKey,
 } from "../utils/crypto";
+import * as aliasSvc from "../services/aliases";
+import { aliasList } from "../templates/aliases";
+import { keyList, newKeyDisplay } from "../templates/keys";
+import { toAliasResponse } from "../utils/format";
 
 const router = Router();
 
@@ -69,13 +74,34 @@ router.get("/logout", (req: Request, res: Response) => {
   });
 });
 
-// --- API key management (session-authenticated) ---
+// --- Session guard ---
 
 const requireSession = (req: Request, res: Response, next: Function) => {
   if (!req.session.userId)
     return res.status(401).json({ message: "Not logged in" });
   next();
 };
+
+// --- Helpers ---
+
+const renderAliasListForUser = async (userEmail: string): Promise<string> => {
+  const aliases = await aliasSvc.listForUser(userEmail);
+  return aliasList(aliases.map(toAliasResponse));
+};
+
+const renderKeyListForUser = async (userId: string): Promise<string> => {
+  const keys = await apiKeys.listApiKeys(userId);
+  return keyList(keys);
+};
+
+const htmlResponse = (res: Response, html: string, toast?: string) => {
+  if (toast) {
+    res.set("HX-Trigger", JSON.stringify({ showToast: toast }));
+  }
+  res.type("html").send(html);
+};
+
+// --- API key management (session-authenticated) ---
 
 router.post("/api-keys", requireSession, async (req: Request, res: Response) => {
   const name = (req.body.name as string)?.trim() || "Default";
@@ -84,12 +110,14 @@ router.post("/api-keys", requireSession, async (req: Request, res: Response) => 
 
   await apiKeys.createApiKey(generateId(), req.session.userId!, keyHash, name);
 
-  res.json({ key: rawKey, name });
+  const keysHtml = await renderKeyListForUser(req.session.userId!);
+  const html = newKeyDisplay(rawKey) + `<div id="keyList">${keysHtml}</div>`;
+  htmlResponse(res, html, "API key created");
 });
 
 router.get("/api-keys", requireSession, async (req: Request, res: Response) => {
-  const keys = await apiKeys.listApiKeys(req.session.userId!);
-  res.json({ data: keys });
+  const html = await renderKeyListForUser(req.session.userId!);
+  htmlResponse(res, html);
 });
 
 router.delete(
@@ -102,7 +130,9 @@ router.delete(
     );
     if (affected === 0)
       return res.status(404).json({ message: "API key not found" });
-    res.json({ message: "Deleted" });
+
+    const html = await renderKeyListForUser(req.session.userId!);
+    htmlResponse(res, html, "API key deleted");
   }
 );
 
@@ -112,10 +142,8 @@ router.get(
   "/aliases-preview",
   requireSession,
   async (req: Request, res: Response) => {
-    const { listForUser } = await import("../services/aliases");
-    const { toAliasResponse } = await import("../utils/format");
-    const aliases = await listForUser(req.session.userEmail!);
-    res.json({ data: aliases.map(toAliasResponse) });
+    const html = await renderAliasListForUser(req.session.userEmail!);
+    htmlResponse(res, html);
   }
 );
 
@@ -123,17 +151,14 @@ router.post(
   "/aliases-create",
   requireSession,
   async (req: Request, res: Response) => {
-    const { generateLocalPart } = await import("../utils/crypto");
-    const { config: cfg } = await import("../config");
-    const mailcowSvc = await import("../services/mailcow");
-
     const customLocalPart = (req.body.local_part as string)?.trim();
     const localPart = customLocalPart || generateLocalPart();
-    const address = `${localPart}@${cfg.relay.domain}`;
+    const address = `${localPart}@${config.relay.domain}`;
 
     try {
-      await mailcowSvc.createAlias(address, req.session.userEmail!);
-      res.json({ message: "Alias created" });
+      await mailcow.createAlias(address, req.session.userEmail!);
+      const html = await renderAliasListForUser(req.session.userEmail!);
+      htmlResponse(res, html, "Alias created");
     } catch (err) {
       console.error("Alias creation failed:", (err as Error).message);
       res.status(502).json({ message: "Failed to create alias" });
@@ -145,15 +170,15 @@ router.patch(
   "/aliases-toggle/:id",
   requireSession,
   async (req: Request, res: Response) => {
-    const mailcowSvc = await import("../services/mailcow");
-    const aliasSvc = await import("../services/aliases");
-
     const alias = await aliasSvc.getById(Number(req.params.id), req.session.userEmail!);
     if (!alias) return res.status(404).json({ message: "Alias not found" });
 
+    const newActive = alias.active !== 1;
+
     try {
-      await mailcowSvc.setAliasActive(alias.id, !!req.body.active);
-      res.json({ message: "Updated" });
+      await mailcow.setAliasActive(alias.id, newActive);
+      const html = await renderAliasListForUser(req.session.userEmail!);
+      htmlResponse(res, html, newActive ? "Alias enabled" : "Alias disabled");
     } catch (err) {
       console.error("Alias toggle failed:", (err as Error).message);
       res.status(502).json({ message: "Failed to update alias" });
@@ -165,15 +190,13 @@ router.delete(
   "/aliases-delete/:id",
   requireSession,
   async (req: Request, res: Response) => {
-    const mailcowSvc = await import("../services/mailcow");
-    const aliasSvc = await import("../services/aliases");
-
     const alias = await aliasSvc.getById(Number(req.params.id), req.session.userEmail!);
     if (!alias) return res.status(404).json({ message: "Alias not found" });
 
     try {
-      await mailcowSvc.deleteAlias(alias.id);
-      res.json({ message: "Deleted" });
+      await mailcow.deleteAlias(alias.id);
+      const html = await renderAliasListForUser(req.session.userEmail!);
+      htmlResponse(res, html, "Alias deleted");
     } catch (err) {
       console.error("Alias deletion failed:", (err as Error).message);
       res.status(502).json({ message: "Failed to delete alias" });

@@ -1,9 +1,11 @@
-<!DOCTYPE html>
+import { escapeHtml } from "../utils/format";
+
+export const loginPage = (serviceName: string): string => `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Incowgnito</title>
+  <title>${escapeHtml(serviceName)}</title>
   <link rel="stylesheet" href="/assets/css/reset.css">
   <link rel="stylesheet" href="/assets/css/typography.css">
   <link rel="stylesheet" href="/assets/css/layout.css">
@@ -13,10 +15,9 @@
 <body class="login-page">
   <div class="login-container">
     <img src="/assets/img/logo.svg" alt="Logo" class="login-logo">
-    <h1 class="login-title" id="serviceName">Incowgnito</h1>
+    <h1 class="login-title">${escapeHtml(serviceName)}</h1>
     <p class="login-subtitle">Private email aliases powered by your mailcow server. Generate forwarding addresses on demand for Bitwarden or any service.</p>
-    <a href="/auth/login" class="login-btn" id="loginBtn">Login with Mailcow</a>
+    <a href="/auth/login" class="login-btn">Login with Mailcow</a>
   </div>
-  <script src="/js/index.js"></script>
 </body>
-</html>
+</html>`;
