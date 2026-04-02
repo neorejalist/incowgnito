@@ -15,6 +15,17 @@ body {
   h1 { font-size: 1.25rem; }
 }
 
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.header-logo {
+  width: 32px;
+  height: 32px;
+}
+
 .header-right {
   display: flex;
   align-items: center;
