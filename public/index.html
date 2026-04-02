@@ -17,18 +17,6 @@
     <p class="login-subtitle">Private email aliases powered by your mailcow server. Generate forwarding addresses on demand for Bitwarden or any service.</p>
     <a href="/auth/login" class="login-btn" id="loginBtn">Login with Mailcow</a>
   </div>
-  <script>
-    fetch("/session-info")
-      .then(r => r.json())
-      .then(d => { if (d.loggedIn) window.location.href = "/dashboard"; });
-
-    fetch("/api/branding")
-      .then(r => r.json())
-      .then(b => {
-        if (!b.serviceName) return;
-        document.title = b.serviceName;
-        document.getElementById("serviceName").textContent = b.serviceName;
-      });
-  </script>
+  <script src="/js/index.js"></script>
 </body>
 </html>
