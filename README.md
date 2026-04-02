@@ -233,6 +233,14 @@ deploy/
 └── setup.sh
 ```
 
+## Known Limitations
+
+### OAuth consent screen on every login
+
+Mailcow's OAuth2 implementation does not remember prior user consent. This means users see the "Permit/Deny" screen every time they log in, even though they have already authorized Incowgnito before. This is a Mailcow limitation, not an Incowgnito bug. An open PR ([mailcow/mailcow-dockerized#6895](https://github.com/mailcow/mailcow-dockerized/pull/6895)) adds a "Trusted" flag to OAuth2 clients that will skip the consent screen — once merged, marking the Incowgnito OAuth client as trusted in the Mailcow admin panel will resolve this.
+
+Note: if you are already logged into the Mailcow UI in the same browser, you will only see the consent screen (not the full login form). Aliases and API keys are unaffected — they persist in the database regardless.
+
 ## Roadmap
 
 ### Send-as support for aliases
