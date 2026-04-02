@@ -38,11 +38,11 @@ const start = async () => {
     })
   );
 
-  app.use(express.static(path.join(import.meta.dir, "../public")));
+  app.use(express.static(path.join(__dirname, "../public")));
 
   app.get("/dashboard", (req, res) => {
     if (!req.session.userId) return res.redirect("/");
-    res.sendFile(path.join(import.meta.dir, "../public/dashboard.html"));
+    res.sendFile(path.join(__dirname, "../public/dashboard.html"));
   });
 
   app.get("/session-info", (req, res) => {
