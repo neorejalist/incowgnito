@@ -8,6 +8,13 @@ import { migrate } from "./db/migrate";
 import authRouter from "./routes/auth";
 import aliasesRouter from "./routes/aliases";
 import accountRouter from "./routes/account";
+import { loginPage } from "./templates/login";
+import { dashboardPage } from "./templates/dashboard";
+import { aliasList } from "./templates/aliases";
+import { keyList } from "./templates/keys";
+import { toAliasResponse } from "./utils/format";
+import * as apiKeys from "./db/api-keys";
+import * as aliasSvc from "./services/aliases";
 
 interface Branding {
   serviceName: string;
@@ -53,16 +60,30 @@ export function createApp() {
   const branding = loadBranding();
   app.get("/api/branding", (_req, res) => res.json(branding));
 
-  app.use(express.static(path.join(__dirname, "../public")));
+  // Serve static JS (htmx, toast)
+  app.use("/js", express.static(path.join(__dirname, "../public/js")));
 
-  app.get("/dashboard", (req, res) => {
-    if (!req.session.userId) return res.redirect("/");
-    res.sendFile(path.join(__dirname, "../public/dashboard.html"));
+  // Server-rendered login page
+  app.get("/", (req, res) => {
+    if (req.session.userId) return res.redirect("/dashboard");
+    res.type("html").send(loginPage(branding.serviceName));
   });
 
-  app.get("/session-info", (req, res) => {
-    if (!req.session.userId) return res.json({ loggedIn: false });
-    res.json({ loggedIn: true, email: req.session.userEmail });
+  // Server-rendered dashboard
+  app.get("/dashboard", async (req, res) => {
+    if (!req.session.userId) return res.redirect("/");
+
+    const aliases = await aliasSvc.listForUser(req.session.userEmail!);
+    const keys = await apiKeys.listApiKeys(req.session.userId!);
+
+    const html = dashboardPage({
+      serviceName: branding.serviceName,
+      userEmail: req.session.userEmail!,
+      aliasListHtml: aliasList(aliases.map(toAliasResponse)),
+      keyListHtml: keyList(keys),
+    });
+
+    res.type("html").send(html);
   });
 
   app.use("/auth", authRouter);
