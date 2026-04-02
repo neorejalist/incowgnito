@@ -1,5 +1,3 @@
-WIP - currently broken!
-
 # Incowgnito
 
 Self-hosted email alias service compatible with the [addy.io](https://addy.io) API. Runs as a sidecar to your existing [mailcow-dockerized](https://github.com/mailcow/mailcow-dockerized) installation.
@@ -44,11 +42,28 @@ In the Mailcow UI, go to **Admin > OAuth2 Apps > Add Application**:
 
 In the Mailcow UI, go to **Admin > API** and create a **Read/Write** API key.
 
-### 4. Configure DNS & TLS
+### 4. Configure DNS
 
-Point `relay.example.com` to your mailcow server (A/AAAA record or wildcard).
+#### App domain (`relay.example.com`)
 
-Ensure the domain is covered by your mailcow TLS certificate:
+Point `relay.example.com` to your mailcow server with an A (and/or AAAA) record.
+
+#### Alias domain (`alias.example.com`)
+
+The alias domain needs MX records so that incoming mail is routed to your mailcow server:
+
+| Type | Name | Value | Priority |
+|---|---|---|---|
+| MX | `alias.example.com` | `mail.example.com` | 10 |
+| TXT | `alias.example.com` | `v=spf1 include:mail.example.com ~all` | — |
+
+Replace `mail.example.com` with your mailcow hostname. The SPF record ensures forwarded replies aren't flagged as spam.
+
+If your mailcow instance uses DKIM, no extra DKIM setup is needed for the alias domain — mailcow signs outbound mail with the sending domain's key, and aliases only forward inbound mail.
+
+#### TLS
+
+Ensure both domains are covered by your mailcow TLS certificate:
 
 ```bash
 # Option A: Add to mailcow's certificate SANs
@@ -152,9 +167,8 @@ These are read automatically from `mailcow.conf` via the docker-compose `env_fil
 ## Development
 
 ```bash
-# Prerequisites: Bun (https://bun.sh)
-bun install
-bun run dev    # starts with --watch for auto-reload
+npm install
+npm run dev    # starts with --watch for auto-reload
 ```
 
 The app expects a MariaDB instance and the environment variables listed above. For local development, you can point `DBHOST` at a local MariaDB or use Docker:
@@ -214,6 +228,25 @@ deploy/
 ├── incowgnito.conf.example
 └── setup.sh
 ```
+
+## Roadmap
+
+### Send-as support for aliases
+
+Aliases are currently receive-only (forwarding). A planned toggle in the dashboard will let users enable "send as" on individual aliases via the Mailcow API. This is useful when a service requires proof that you own the address (e.g. a company asking you to send a verification email from it).
+
+### Custom branding
+
+A mountable `/assets` volume will allow full visual customisation:
+
+```
+assets/
+├── branding.json        # App name, colors, footer text
+├── img/                 # Logo, favicon, background
+└── css/                 # Style overrides
+```
+
+Mount it in your `docker-compose.override.yml` and Incowgnito will pick up your branding automatically — no fork needed.
 
 ## Support
 

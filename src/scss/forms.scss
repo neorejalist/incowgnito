@@ -1,0 +1,23 @@
+@use 'base/variables' as *;
+
+.form-row {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+input[type="text"] {
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  color: $text-primary;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  font-size: 0.875rem;
+  flex: 1;
+
+  &::placeholder { color: $text-muted; }
+  &:focus {
+    outline: none;
+    border-color: $focus-color;
+  }
+}

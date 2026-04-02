@@ -26,12 +26,18 @@ interface Config {
     port: number;
     sessionSecret: string;
     isProduction: boolean;
+    assetsPath: string;
   };
 }
+
+const ASSETS_PATH_PRODUCTION = "/app/assets";
+const ASSETS_PATH_DEVELOPMENT = "./assets";
 
 let _config: Config | null = null;
 
 function loadConfig(): Config {
+  const isProduction = process.env.NODE_ENV === "production";
+
   return {
     mailcow: {
       host: required("MAILCOW_HOSTNAME"),
@@ -53,7 +59,8 @@ function loadConfig(): Config {
       url: required("APP_URL"),
       port: Number(process.env.PORT ?? 3000),
       sessionSecret: required("SESSION_SECRET"),
-      isProduction: process.env.NODE_ENV === "production",
+      isProduction,
+      assetsPath: process.env.ASSETS_PATH ?? (isProduction ? ASSETS_PATH_PRODUCTION : ASSETS_PATH_DEVELOPMENT),
     },
   };
 }

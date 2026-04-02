@@ -1,11 +1,28 @@
 import express from "express";
 import session from "express-session";
 import path from "path";
+import fs from "fs";
 import { config } from "./config";
 import { migrate } from "./db/migrate";
 import authRouter from "./routes/auth";
 import aliasesRouter from "./routes/aliases";
 import accountRouter from "./routes/account";
+
+interface Branding {
+  serviceName: string;
+  domain: string;
+  owner: string;
+}
+
+const ASSETS_DEFAULT_PATH = path.join(__dirname, "../public/assets/default");
+const BRANDING_FILENAME = "branding.json";
+
+function loadBranding(): Branding {
+  const overridePath = path.join(config.app.assetsPath, BRANDING_FILENAME);
+  const defaultPath = path.join(ASSETS_DEFAULT_PATH, BRANDING_FILENAME);
+  const brandingPath = fs.existsSync(overridePath) ? overridePath : defaultPath;
+  return JSON.parse(fs.readFileSync(brandingPath, "utf-8"));
+}
 
 const start = async () => {
   console.log("[startup] Loading config...");
@@ -37,6 +54,13 @@ const start = async () => {
       },
     })
   );
+
+  // Asset fallback: user overrides take priority over defaults
+  app.use("/assets", express.static(config.app.assetsPath));
+  app.use("/assets", express.static(ASSETS_DEFAULT_PATH));
+
+  const branding = loadBranding();
+  app.get("/api/branding", (_req, res) => res.json(branding));
 
   app.use(express.static(path.join(__dirname, "../public")));
 

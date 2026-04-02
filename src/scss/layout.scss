@@ -1,0 +1,61 @@
+@use 'base/variables' as *;
+
+body {
+  background: $bg-primary;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-lg $spacing-2xl;
+  border-bottom: 1px solid $bg-secondary;
+
+  h1 { font-size: 1.25rem; }
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.user-email {
+  color: $text-secondary;
+  font-size: 0.875rem;
+}
+
+main {
+  max-width: $max-width-dashboard;
+  margin: 0 auto;
+  padding: $spacing-2xl;
+}
+
+.section {
+  margin-bottom: $spacing-3xl;
+
+  h2 {
+    font-size: 1.1rem;
+    margin-bottom: $spacing-lg;
+  }
+}
+
+.alias-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.alias-address {
+  font-family: $font-mono;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.alias-actions {
+  display: flex;
+  gap: $spacing-sm;
+  flex-shrink: 0;
+}
