@@ -1,35 +1,48 @@
-import axios from "axios";
+import axios, { type AxiosInstance } from "axios";
 import https from "https";
 import { config } from "../config";
 
 const ALIAS_ACTIVE = 1;
 const ALIAS_INACTIVE = 0;
 
-const apiClient = axios.create({
-  baseURL: `https://${config.mailcow.host}/api/v1`,
-  headers: {
-    "X-API-Key": config.mailcow.apiKey,
-    "Content-Type": "application/json",
-  },
-  httpsAgent: new https.Agent({ rejectUnauthorized: true }),
-});
+let _apiClient: AxiosInstance | null = null;
+let _oauthClient: AxiosInstance | null = null;
 
-const oauthClient = axios.create({
-  baseURL: `https://${config.mailcow.host}`,
-  httpsAgent: new https.Agent({ rejectUnauthorized: true }),
-});
+function getApiClient(): AxiosInstance {
+  if (!_apiClient) {
+    _apiClient = axios.create({
+      baseURL: `https://${config.mailcow.host}/api/v1`,
+      headers: {
+        "X-API-Key": config.mailcow.apiKey,
+        "Content-Type": "application/json",
+      },
+      httpsAgent: new https.Agent({ rejectUnauthorized: true }),
+    });
+  }
+  return _apiClient;
+}
+
+function getOauthClient(): AxiosInstance {
+  if (!_oauthClient) {
+    _oauthClient = axios.create({
+      baseURL: `https://${config.mailcow.host}`,
+      httpsAgent: new https.Agent({ rejectUnauthorized: true }),
+    });
+  }
+  return _oauthClient;
+}
 
 export const createAlias = async (
   address: string,
   goto: string
 ): Promise<{ id: number }> => {
-  await apiClient.post("/add/alias", {
+  await getApiClient().post("/add/alias", {
     address,
     goto,
     active: ALIAS_ACTIVE,
   });
 
-  const { data: allAliases } = await apiClient.get("/get/alias/all");
+  const { data: allAliases } = await getApiClient().get("/get/alias/all");
   const created = allAliases.find(
     (a: { address: string }) => a.address === address
   );
@@ -40,14 +53,14 @@ export const createAlias = async (
 };
 
 export const deleteAlias = async (mailcowAliasId: number): Promise<void> => {
-  await apiClient.post("/delete/alias", [mailcowAliasId]);
+  await getApiClient().post("/delete/alias", [mailcowAliasId]);
 };
 
 export const setAliasActive = async (
   mailcowAliasId: number,
   active: boolean
 ): Promise<void> => {
-  await apiClient.post("/edit/alias", {
+  await getApiClient().post("/edit/alias", {
     items: [mailcowAliasId],
     attr: { active: active ? ALIAS_ACTIVE : ALIAS_INACTIVE },
   });
@@ -65,7 +78,7 @@ export const exchangeCodeForToken = async (
     client_secret: config.mailcow.oauthClientSecret,
   });
 
-  const { data } = await oauthClient.post("/oauth/token", params.toString(), {
+  const { data } = await getOauthClient().post("/oauth/token", params.toString(), {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
 
@@ -75,7 +88,7 @@ export const exchangeCodeForToken = async (
 export const getUserProfile = async (
   accessToken: string
 ): Promise<{ email: string; username: string }> => {
-  const { data } = await oauthClient.get("/oauth/profile", {
+  const { data } = await getOauthClient().get("/oauth/profile", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
