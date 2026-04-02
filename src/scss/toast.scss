@@ -1,0 +1,20 @@
+@use 'base/variables' as *;
+
+.toast {
+  position: fixed;
+  bottom: $spacing-xl;
+  right: $spacing-xl;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  padding: $spacing-md $spacing-xl;
+  border-radius: $radius-lg;
+  font-size: 0.875rem;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all $transition-normal;
+
+  &.show {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

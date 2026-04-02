@@ -6,3 +6,4 @@ dist/
 !deploy/*.example
 .DS_Store
 bun.lockb
+public/assets/default/css/

@@ -1,0 +1,19 @@
+@use 'base/variables' as *;
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem $spacing-sm;
+  border-radius: $radius-sm;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-active {
+  background: $success-bg;
+  color: $success-text;
+}
+
+.badge-inactive {
+  background: $error-bg;
+  color: $error-text;
+}

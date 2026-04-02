@@ -1,0 +1,54 @@
+@use 'base/variables' as *;
+
+.btn {
+  display: inline-block;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-md;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background $transition-fast;
+}
+
+.btn-primary {
+  background: $accent;
+  color: #fff;
+
+  &:hover { background: $accent-hover; }
+}
+
+.btn-danger {
+  background: $danger;
+  color: #fff;
+
+  &:hover { background: $danger-hover; }
+}
+
+.btn-ghost {
+  background: transparent;
+  color: $text-secondary;
+  border: 1px solid $border-color;
+
+  &:hover { background: $bg-secondary; }
+}
+
+.btn-sm {
+  padding: $spacing-xs $spacing-md;
+  font-size: 0.8rem;
+}
+
+.login-btn {
+  display: inline-block;
+  background: $accent;
+  color: #fff;
+  text-decoration: none;
+  padding: $spacing-md $spacing-2xl;
+  border-radius: $radius-lg;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background $transition-fast;
+
+  &:hover { background: $accent-hover; }
+}
