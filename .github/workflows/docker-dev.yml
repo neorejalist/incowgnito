@@ -2,9 +2,9 @@ name: Build & Push Dev to GHCR
 
 on:
   push:
-    branches: [development]
+    branches: [develop]
   pull_request:
-    branches: [development]
+    branches: [develop]
 
 env:
   REGISTRY: ghcr.io
