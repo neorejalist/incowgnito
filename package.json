@@ -9,7 +9,9 @@
     "build": "npm run scss:build",
     "prestart": "npm run scss:build",
     "start": "npx tsx src/index.ts",
-    "dev": "npx tsx --watch src/index.ts & npm run scss:watch"
+    "dev": "npx tsx --watch src/index.ts & npm run scss:watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "axios": "^1.7.0",
@@ -23,6 +25,7 @@
     "@types/express-session": "^1.18.0",
     "@types/node": "^22.0.0",
     "sass": "^1.98.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
   }
 }
