@@ -17,7 +17,9 @@ COPY package.json tsconfig.json ./
 COPY src/ ./src/
 COPY public/ ./public/
 COPY --from=build /app/public/assets/default/css/ ./public/assets/default/css/
-RUN mkdir -p /app/assets
+RUN mkdir -p /app/assets && chown node:node /app/assets
+
+USER node
 
 ENV NODE_ENV=production
 EXPOSE 3000
