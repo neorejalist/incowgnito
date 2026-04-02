@@ -1,4 +1,5 @@
 import express from "express";
+import helmet from "helmet";
 import session from "express-session";
 import path from "path";
 import fs from "fs";
@@ -24,21 +25,11 @@ function loadBranding(): Branding {
   return JSON.parse(fs.readFileSync(brandingPath, "utf-8"));
 }
 
-const start = async () => {
-  console.log("[startup] Loading config...");
-  console.log(`[startup] Mailcow host: ${config.mailcow.host}`);
-  console.log(`[startup] DB host: ${config.db.host}:${config.db.port}/${config.db.name}`);
-  console.log(`[startup] DB user: ${config.db.user}`);
-  console.log(`[startup] Relay domain: ${config.relay.domain}`);
-  console.log(`[startup] App URL: ${config.app.url}`);
-
-  console.log("[startup] Connecting to database...");
-  await migrate();
-
-  console.log("[startup] Configuring HTTP server...");
+export function createApp() {
   const app = express();
 
   app.set("trust proxy", 1);
+  app.use(helmet());
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
 
@@ -84,6 +75,23 @@ const start = async () => {
     console.error("Unhandled error:", err);
     res.status(500).json({ message: "Internal server error" });
   });
+
+  return app;
+}
+
+const start = async () => {
+  console.log("[startup] Loading config...");
+  console.log(`[startup] Mailcow host: ${config.mailcow.host}`);
+  console.log(`[startup] DB host: ${config.db.host}:${config.db.port}/${config.db.name}`);
+  console.log(`[startup] DB user: ${config.db.user}`);
+  console.log(`[startup] Relay domain: ${config.relay.domain}`);
+  console.log(`[startup] App URL: ${config.app.url}`);
+
+  console.log("[startup] Connecting to database...");
+  await migrate();
+
+  console.log("[startup] Configuring HTTP server...");
+  const app = createApp();
 
   console.log("[startup] Starting HTTP server...");
   app.listen(config.app.port, () => {
